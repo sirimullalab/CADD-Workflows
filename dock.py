@@ -9,17 +9,17 @@ from os import path
 from subprocess import call
 import sys
 import time
-from tqdm import *
 
 SMINA_PATH="./smina"
 
+
 def dock(ligand):
     """Function that calls smina to dock a ligand."""
-    ligname = path.splitext(path.basename(ligand))[0]
+    ligname = path.splitext(ligand)[0]
     # Call vina process
-    call("{0} -r {1} -l {2} --autobox_ligand {3} --num_modes {4} " +
-         "-o {5}_out.pdbqt".format(SMINA_PATH, receptor, ligand,
-                                   crystal_ligand, num_modes, ligname) 
+    print("Running on ligand:", ligand)
+    call([SMINA_PATH, "-r", receptor, "-l", ligand, "--autobox_ligand", crystal_ligand,
+          "--num_modes", str(num_modes), "-o", ligname + "_out.pdbqt", "--cpu", "1"])
 
 
 if __name__ == "__main__":
@@ -31,12 +31,12 @@ if __name__ == "__main__":
     crystal_ligand = target_path + "crystal_ligand.mol2"
     actives = glob.glob(target_path + "actives/*.pdbqt")
     decoys = glob.glob(target_path + "decoys/*.pdbqt")
-    ligands = actives + decoys
+    ligands = decoys #actives + decoys
     num_modes = 12
     # Start process pool
     pool = Pool(processes=n_cpus)
-    num_jobs = len(ligands)
-    with tqdm(total=num_jobs) as pbar:
-    	# Run the dock function for each ligand
-    	for i, _ in tqdm(enumerate(pool.imap_unordered(dock, ligands))):
-            pbar.update()
+    start_time = time.time()
+    # Run the dock function for each ligand
+    pool.map(dock, ligands)
+    stop_time = time.time()
+    print("Job completed in:", stop_time - start_time, "seconds")
